@@ -19,21 +19,15 @@ build_and_deploy:
   services:
     - docker:dind
   script:
-    # 1. Use a here-document to create a valid JSON key file
-    - |-
-      cat > /tmp/gcp_key.json << EOF
-      $GCP_SA_KEY
-      EOF
+    # 1. GitLab이 생성한 키 파일을 cat으로 읽어 gcloud에 전달
+    - cat $GCP_SA_KEY | gcloud auth activate-service-account --key-file=-
     
-    # 2. Authenticate using the temporary file
-    - gcloud auth activate-service-account --key-file=/tmp/gcp_key.json
-    
-    # 3. Configure Docker for authentication
+    # 2. Docker가 Artifact Registry에 인증할 수 있도록 설정
     - gcloud auth configure-docker $GCP_REGION-docker.pkg.dev
     
-    # 4. Build and push the Docker image
+    # 3. Docker 이미지 빌드 및 푸시
     - docker build -t $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$ARTIFACT_REGISTRY/$SERVICE_NAME:$IMAGE_TAG .
     - docker push $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$ARTIFACT_REGISTRY/$SERVICE_NAME:$IMAGE_TAG
     
-    # 5. Deploy to Cloud Run
+    # 4. Cloud Run에 배포
     - gcloud run deploy $SERVICE_NAME --image $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$ARTIFACT_REGISTRY/$SERVICE_NAME:$IMAGE_TAG --platform managed --region $GCP_REGION --allow-unauthenticated
