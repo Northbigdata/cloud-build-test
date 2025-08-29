@@ -5,11 +5,11 @@ stages:
   - deploy
 
 variables:
-  GCP_PROJECT_ID: samsung-mx-test
+  GCP_PROJECT_ID: samsung-mx-test 
   GCP_REGION: asia-northeast3
   ARTIFACT_REGISTRY: my-repo
   SERVICE_NAME: hello-spring-boot
-  IMAGE_TAG: $CI_COMMIT_SHA  # 변수를 직접 정의하고 커밋 SHA를 태그로 사용
+  IMAGE_TAG: $CI_COMMIT_SHA
 
 build_and_deploy:
   stage: deploy
@@ -19,17 +19,18 @@ build_and_deploy:
   services:
     - docker:dind
   script:
-    # 1. GCP 서비스 계정 키를 사용해 gcloud CLI 인증
-    - gcloud auth activate-service-account --key-file=$GCP_SA_KEY
+    # 1. GCP 서비스 계정 키 내용을 임시 파일에 저장합니다.
+    - echo "$GCP_SA_KEY" > /tmp/gcp_key.json
     
-    # 2. Docker가 Artifact Registry에 인증할 수 있도록 gcloud 자격 증명 도우미 설정
+    # 2. 임시 파일의 경로를 사용해 gcloud CLI를 인증합니다.
+    - gcloud auth activate-service-account --key-file=/tmp/gcp_key.json
+    
+    # 3. Docker가 Artifact Registry에 인증할 수 있도록 설정합니다.
     - gcloud auth configure-docker $GCP_REGION-docker.pkg.dev
     
-    # 3. Docker 이미지 빌드 및 푸시
+    # 4. Docker 이미지 빌드 및 푸시
     - docker build -t $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$ARTIFACT_REGISTRY/$SERVICE_NAME:$IMAGE_TAG .
     - docker push $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$ARTIFACT_REGISTRY/$SERVICE_NAME:$IMAGE_TAG
     
-    # 4. Cloud Run에 Docker 이미지 배포
+    # 5. Cloud Run에 배포
     - gcloud run deploy $SERVICE_NAME --image $GCP_REGION-docker.pkg.dev/$GCP_PROJECT_ID/$ARTIFACT_REGISTRY/$SERVICE_NAME:$IMAGE_TAG --platform managed --region $GCP_REGION --allow-unauthenticated
-  only:
-    - main
