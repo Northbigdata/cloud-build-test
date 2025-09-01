@@ -10,8 +10,4 @@ FROM openjdk:11-jre-slim
 WORKDIR /app
 COPY --from=builder /app/target/*.jar ./app.jar
 EXPOSE 8081
-<<<<<<< HEAD
 CMD ["java", "-jar", "app.jar"]
-=======
-CMD ["java", "-jar", "app.jar"]
->>>>>>> c00271b (Apply stashed changes)
