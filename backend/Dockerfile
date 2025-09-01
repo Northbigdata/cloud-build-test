@@ -1,7 +1,13 @@
-# backend/Dockerfile
+# Stage 1: Build JAR
+FROM maven:3.8.5-openjdk-11 AS builder
+WORKDIR /app
+COPY pom.xml .
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# Stage 2: Run
 FROM openjdk:11-jre-slim
 WORKDIR /app
-COPY target/*.jar ./app.jar
-ENV PORT 8080
-EXPOSE 8080
-CMD ["java", "-jar", "app.jar", "--server.port=${PORT}"]
+COPY --from=builder /app/target/*.jar ./app.jar
+EXPOSE 8081
+CMD ["java", "-jar", "app.jar"]
